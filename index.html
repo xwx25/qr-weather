@@ -149,13 +149,10 @@ link.href = canvas.toDataURL('image/png');
 link.click();
 })
 
-// ============ 天气API部分 ============
+// ============ 模拟天气（无API，线上Gitee直接运行） ============
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
 const weatherResult = document.getElementById('weatherResult');
-
-const appid = "38TNVX7Q3V";
-const appsecret = "CF5AK53PQ8";
 
 weatherBtn.addEventListener('click', async ()=>{
 const city = cityInput.value.trim();
@@ -164,28 +161,27 @@ weatherResult.innerText = "请输入城市名称";
 return;
 }
 weatherResult.innerText = "正在查询...";
-try{
-const url = `https://api.tianqiapi.com/api?unescape=1&version=v63&appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}`;
-const res = await fetch(url);
-const json = await res.json();
-if(json.err){
-weatherResult.innerText = `查询失败：${json.errmsg}`;
-return;
-}
-const wea = json.data[0];
-const outputText = `城市：${json.city}
-日期：${wea.date}
-天气：${wea.wea}
-温度：${wea.tem}℃
-最低/最高：${wea.tem2}℃ ~ ${wea.tem1}℃
-风向：${wea.win} ${wea.win_speed}
-空气质量：${wea.air_level}
-提示：${wea.air_tips}`;
+
+// 模拟延时，模拟网络请求
+await new Promise(resolve => setTimeout(resolve, 600));
+
+// 随机模拟数据
+const temp = Math.floor(Math.random() * 15 + 20);
+const tempLow = temp - 4;
+const tempHigh = temp + 3;
+const weatherList = ["晴","多云","阴天","小雨"];
+const windList = ["东风","南风","西北风","东北风"];
+const randomWeather = weatherList[Math.floor(Math.random()*weatherList.length)];
+const randomWind = windList[Math.floor(Math.random()*windList.length)];
+
+const outputText = `城市：${city}
+天气：${randomWeather}
+温度：${temp}℃
+最低/最高：${tempLow}℃ ~ ${tempHigh}℃
+风向：${randomWind} ${Math.floor(Math.random()*3)+1}级
+空气质量：优
+提示：适合外出活动`;
 weatherResult.innerText = outputText;
-}catch(err){
-console.error(err);
-weatherResult.innerText = "网络请求失败，请使用VSCode Live Server打开！";
-}
 })
 </script>
 </body>
