@@ -1,167 +1,205 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>二维码生成器+天气查询</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: system-ui, sans-serif;
-        }
-        body {
-            max-width: 600px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-        .box {
-            border: 1px solid #eee;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px #0000000a;
-        }
-        h3 {
-            margin-top: 0;
-        }
-        input {
-            width: 100%;
-            padding: 10px 12px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            margin-bottom:12px;
-        }
-        button {
-            padding: 10px 16px;
-            font-size:16px;
-            border: none;
-            border-radius:6px;
-            background:#2563eb;
-            color:white;
-            cursor:pointer;
-            margin-right:8px;
-            margin-bottom:12px;
-        }
-        button:disabled {
-            background:#94b8f0;
-            cursor:not-allowed;
-        }
-        #qrcodeCanvas {
-            display:block;
-            margin:10px auto;
-        }
-        #result {
-            padding:12px;
-            background:#f7f8fa;
-            border-radius:6px;
-            white-space:pre-line;
-            min-height:60px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>二维码生成 + 天气查询</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+font-family: system-ui, sans-serif;
+}
+body {
+background-color: #f5f7fa;
+padding: 30px 20px;
+}
+.container {
+background: #ffffff;
+padding: 32px;
+border-radius: 12px;
+box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+width: 100%;
+max-width: 480px;
+margin: 0 auto 30px;
+}
+h1 {
+text-align: center;
+font-size: 22px;
+margin-bottom: 24px;
+color: #222;
+}
+h2 {
+font-size:18px;
+margin-bottom:16px;
+color:#333;
+border-bottom:1px solid #eee;
+padding-bottom:8px;
+}
+textarea,input{
+width: 100%;
+padding: 12px;
+border: 1px solid #ddd;
+border-radius: 8px;
+font-size: 15px;
+margin-bottom:16px;
+}
+textarea{
+height: 100px;
+resize: none;
+}
+.btn-group{
+display:flex;
+gap:10px;
+margin-bottom:24px;
+}
+button{
+flex:1;
+padding:12px;
+border:none;
+border-radius:8px;
+font-size:15px;
+cursor:pointer;
+}
+.btn-blue{
+background:#2563eb;
+color:white;
+}
+.btn-green{
+background:#16a34a;
+color:white;
+}
+.btn-orange{
+background:#f97316;
+color:white;
+}
+button:disabled{
+background:#94a3b8;
+cursor:not-allowed;
+}
+.qrcode-wrap{
+text-align:center;
+}
+#qrcodeCanvas{
+max-width:240px;
+}
+.weather-result{
+padding:16px;
+background:#f8fafc;
+border-radius:8px;
+min-height:100px;
+line-height:1.8;
+white-space: pre-line;
+}
+</style>
 </head>
 <body>
-    <div class="box">
-        <h3>二维码生成器</h3>
-        <input type="text" id="qrInput" placeholder="输入内容生成二维码">
-        <button id="createBtn">生成二维码</button>
-        <button id="downloadBtn">下载保存</button>
-        <canvas id="qrcodeCanvas"></canvas>
-    </div>
+<!-- 二维码模块 -->
+<div class="container">
+<h2>二维码生成器</h2>
+<textarea id="inputText" placeholder="请输入要生成二维码的内容..."></textarea>
+<div class="btn-group">
+<button id="genBtn" class="btn-blue">生成二维码</button>
+<button id="downloadBtn" class="btn-green" disabled>下载保存</button>
+</div>
+<div class="qrcode-wrap">
+<canvas id="qrcodeCanvas"></canvas>
+</div>
+</div>
 
-    <div class="box">
-        <h3>天气查询</h3>
-        <input type="text" id="cityInput" placeholder="输入城市名">
-        <button id="weatherBtn">查询天气</button>
-        <div id="result">查询结果将显示在这里</div>
-    </div>
+<!-- 天气查询模块 -->
+<div class="container">
+<h2>天气查询</h2>
+<input type="text" id="cityInput" placeholder="输入城市名称，例如：广州、北京">
+<div class="btn-group">
+<button id="weatherBtn" class="btn-orange">查询天气</button>
+</div>
+<div class="weather-result" id="weatherResult">
+查询结果将显示在这里
+</div>
+</div>
 
 <script>
-// 二维码模块
-const qrInput = document.getElementById('qrInput');
-const createBtn = document.getElementById('createBtn');
+// ============ 二维码部分 ============
+const inputText = document.getElementById('inputText');
+const genBtn = document.getElementById('genBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 const canvas = document.getElementById('qrcodeCanvas');
-let qrImgUrl = "";
 
-createBtn.onclick = function(){
-    const text = qrInput.value.trim();
-    if(!text){
-        alert("请输入内容");
-        return;
-    }
-    QRCode.toCanvas(canvas, text, {width:240}, err=>{
-        if(err) return console.error(err);
-        qrImgUrl = canvas.toDataURL("image/png");
-    })
+genBtn.addEventListener('click', async ()=>{
+const data = inputText.value.trim();
+if(!data){
+alert("请输入二维码内容！");
+return;
 }
-
-downloadBtn.onclick = function(){
-    if(!qrImgUrl){
-        alert("先生成二维码");
-        return;
-    }
-    const a = document.createElement("a");
-    a.href = qrImgUrl;
-    a.download = "二维码.png";
-    a.click();
+try {
+await QRCode.toCanvas(canvas, data, { width:240, margin:2 });
+downloadBtn.disabled = false;
+}catch(err){
+console.error(err);
+alert("二维码生成失败："+err.message);
 }
+})
 
-// 天气模块（适配Gitee Pages：和风天气代理域名）
+downloadBtn.addEventListener('click', ()=>{
+const link = document.createElement('a');
+link.download = "qrcode.png";
+link.href = canvas.toDataURL('image/png');
+link.click();
+})
+
+// ============ 天气API部分【已替换为和风代理域名版本】 ============
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
-const resultDom = document.getElementById('result');
-let loading = false;
+const weatherResult = document.getElementById('weatherResult');
 
+// 和风天气代理域名
 const HOST = "me4ewvc2d7.re.qweatherapi.com";
-const KEY = "在此粘贴你的WebAPI密钥";
+// 在这里填入你的和风Web API KEY
+const KEY = "粘贴你的和风KEY";
 
-weatherBtn.onclick = async function(){
-    const city = cityInput.value.trim();
-    if(!city){
-        resultDom.innerText = "请输入城市名称";
-        return;
-    }
-    if(loading) return;
-    loading = true;
-    weatherBtn.disabled = true;
-    resultDom.innerText = "正在查询...";
-    try{
-        // 1.获取城市ID
-        const geoUrl = `https://${HOST}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${KEY}`;
-        const geoRes = await fetch(geoUrl);
-        const geoData = await geoRes.json();
-        if(geoData.code !== "200"){
-            resultDom.innerText = `城市查询失败：${geoData.code}`;
-            return;
-        }
-        const locId = geoData.location[0].id;
-        //2.获取实时天气
-        const weatherUrl = `https://${HOST}/v7/weather/now?location=${locId}&key=${KEY}`;
-        const weatherRes = await fetch(weatherUrl);
-        const weatherData = await weatherRes.json();
-        if(weatherData.code !== "200"){
-            resultDom.innerText = `天气查询失败：${weatherData.code}`;
-            return;
-        }
-        const now = weatherData.now;
-        const cityName = geoData.location[0].name;
-        resultDom.innerText = `城市：${cityName}
+weatherBtn.addEventListener('click', async ()=>{
+const city = cityInput.value.trim();
+if(!city){
+weatherResult.innerText = "请输入城市名称";
+return;
+}
+weatherResult.innerText = "正在查询...";
+try{
+// 获取城市Location ID
+const geoUrl = `https://${HOST}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${KEY}`;
+const geoRes = await fetch(geoUrl);
+const geoData = await geoRes.json();
+if(geoData.code !== "200"){
+weatherResult.innerText = `城市查询失败：${geoData.code}`;
+return;
+}
+const locationId = geoData.location[0].id;
+const cityName = geoData.location[0].name;
+
+// 获取实时天气
+const weatherUrl = `https://${HOST}/v7/weather/now?location=${locationId}&key=${KEY}`;
+const weatherRes = await fetch(weatherUrl);
+const weatherData = await weatherRes.json();
+if(weatherData.code !== "200"){
+weatherResult.innerText = `天气查询失败：${weatherData.code}`;
+return;
+}
+const now = weatherData.now;
+const outputText = `城市：${cityName}
 天气：${now.text}
 温度：${now.temp} ℃
 体感温度：${now.feelsLike} ℃
 风向：${now.windDir}
-风力：${now.windScale}级
+风力：${now.windScale} 级
 湿度：${now.humidity} %`;
-    }catch(e){
-        console.error(e);
-        resultDom.innerText = "网络请求出错，请检查密钥";
-    }finally{
-        loading = false;
-        weatherBtn.disabled = false;
-    }
+weatherResult.innerText = outputText;
+}catch(err){
+console.error(err);
+weatherResult.innerText = "网络请求失败，请检查KEY或网络";
 }
+})
 </script>
 </body>
 </html>
