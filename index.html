@@ -1,14 +1,57 @@
-// ============ 天气查询【和风天气专属代理主机】 ============
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>二维码生成与天气查询</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        *{box-sizing: border-box;font-family:system-ui}
+        body{background:#f5f7fa;padding:30px;max-width:700px;margin:0 auto}
+        .card{background:#fff;border-radius:16px;padding:24px;margin-bottom:24px;box-shadow:0 2px 12px #0000000d}
+        h2{margin-top:0;color:#222}
+        input{width:100%;padding:12px 14px;font-size:16px;border:1px solid #ddd;border-radius:8px;margin:8px 0 16px}
+        button{width:100%;padding:14px;border:none;border-radius:8px;font-size:17px;color:white;background:#ff7820;cursor:pointer;font-weight:bold}
+        button:disabled{background:#ffb080;cursor:not-allowed}
+        #qrcodeCanvas{display:block;margin:10px auto}
+        #weatherResult{margin-top:16px;padding:16px;background:#f8f9fa;border-radius:8px;white-space:pre-line;font-size:16px}
+    </style>
+</head>
+<body>
+    <!-- 二维码模块 -->
+    <div class="card">
+        <h2>二维码生成</h2>
+        <input type="text" id="qrText" placeholder="输入内容生成二维码" value="测试内容">
+        <button onclick="createQr()">生成二维码</button>
+        <canvas id="qrcodeCanvas"></canvas>
+    </div>
+
+    <!-- 天气查询模块 -->
+    <div class="card">
+        <h2>天气查询</h2>
+        <input type="text" id="cityInput" placeholder="输入城市名，例如：深圳" value="深圳">
+        <button id="weatherBtn">查询天气</button>
+        <div id="weatherResult"></div>
+    </div>
+
+<script>
+// ========== 二维码代码 ==========
+function createQr(){
+    const text = document.getElementById('qrText').value;
+    const canvas = document.getElementById('qrcodeCanvas');
+    QrCode.toCanvas(canvas, text, {width:240}, err=>{
+        if(err) console.error(err);
+    })
+}
+createQr();
+
+// ========== 天气查询代码 ==========
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
 const weatherResult = document.getElementById('weatherResult');
 let isLoading = false;
 
-// 你的和风天气信息
-const HOST = "me4ewvc2d7.re.qweatherapi.com";
-const DEV_ID = "Q8A1B68E16";
-// 填入你创建的Web API凭据KEY
-const KEY = "这里粘贴你的Web API凭据KEY";
+const appid = "38TNVX7Q3V";
+const appsecret = "CF5AK53PQ8";
 
 weatherBtn.addEventListener('click', async ()=>{
     const city = cityInput.value.trim();
@@ -19,47 +62,36 @@ weatherBtn.addEventListener('click', async ()=>{
     if(isLoading) return;
     isLoading = true;
     weatherBtn.disabled = true;
-    weatherResult.innerText = "正在查询城市ID...";
+    weatherResult.innerText = "正在查询天气...";
     try{
-        // 第一步：城市搜索，使用你的专属HOST
-        const geoUrl = `https://${HOST}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${KEY}`;
-        const geoRes = await fetch(geoUrl);
-        const geoJson = await geoRes.json();
-        if(geoJson.code !== "200"){
-            weatherResult.innerText = `城市查询失败：${geoJson.code}`;
+        const url = `https://pddfps.tianqiapi.com/api?unescape=1&version=v63&appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if(json.err){
+            weatherResult.innerText = `查询失败：${json.err}`;
             return;
         }
-        const locationId = geoJson.location[0].id;
-        weatherResult.innerText = "正在获取实时天气...";
-
-        // 第二步：实时天气查询
-        const weatherUrl = `https://${HOST}/v7/weather/now?location=${locationId}&key=${KEY}`;
-        const weatherRes = await fetch(weatherUrl);
-        const weatherJson = await weatherRes.json();
-        if(weatherJson.code !== "200"){
-            weatherResult.innerText = `天气查询失败：${weatherJson.code}`;
-            return;
-        }
-        const now = weatherJson.now;
-        const cityName = geoJson.location[0].name;
-        const outputText = `城市：${cityName}
-天气：${now.text}
-温度：${now.temp}℃
-体感温度：${now.feelsLike}℃
-风向：${now.windDir}
-风力：${now.windScale}级
-湿度：${now.humidity}%
-气压：${now.pressure}hPa`;
+        const outputText = `城市：${json.city}
+日期：${json.date}
+天气：${json.wea}
+温度：${json.tem}℃
+风向：${json.win}
+风力：${json.win_speed}
+湿度：${json.humidity}`;
         weatherResult.innerText = outputText;
     }catch(err){
         console.error(err);
-        weatherResult.innerText = "请求失败，请检查KEY是否为Web API类型";
+        weatherResult.innerText = "请求失败！请使用VSCode Live Server打开网页";
     }finally{
         isLoading = false;
         weatherBtn.disabled = false;
     }
 })
-// 城市输入框回车查询
+
+// 回车触发查询
 cityInput.addEventListener("keydown", e=>{
     if(e.key === "Enter") weatherBtn.click();
 })
+</script>
+</body>
+</html>
