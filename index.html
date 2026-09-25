@@ -24,12 +24,6 @@ width: 100%;
 max-width: 480px;
 margin: 0 auto 30px;
 }
-h1 {
-text-align: center;
-font-size: 22px;
-margin-bottom: 24px;
-color: #222;
-}
 h2 {
 font-size:18px;
 margin-bottom:16px;
@@ -121,7 +115,7 @@ white-space: pre-line;
 </div>
 
 <script>
-// ============ 二维码部分 ============
+// ============ 二维码功能 ============
 const inputText = document.getElementById('inputText');
 const genBtn = document.getElementById('genBtn');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -149,7 +143,7 @@ link.href = canvas.toDataURL('image/png');
 link.click();
 })
 
-// ============ 模拟天气（无API，线上Gitee直接运行） ============
+// ============ 模拟天气（无任何API网络请求） ============
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
 const weatherResult = document.getElementById('weatherResult');
@@ -162,10 +156,9 @@ return;
 }
 weatherResult.innerText = "正在查询...";
 
-// 模拟延时，模拟网络请求
+// 模拟网络延迟
 await new Promise(resolve => setTimeout(resolve, 600));
 
-// 随机模拟数据
 const temp = Math.floor(Math.random() * 15 + 20);
 const tempLow = temp - 4;
 const tempHigh = temp + 3;
