@@ -108,10 +108,9 @@
             <canvas id="qrcodeCanvas"></canvas>
         </div>
     </div>
-
     <!-- 天气查询模块 -->
     <div class="container">
-        <h2>天气查询</h2>
+        <h2>天气查询【和风天气】</h2>
         <input type="text" id="cityInput" placeholder="输入城市名称，例如：广州、北京">
         <div class="btn-group">
             <button id="weatherBtn" class="btn-orange">查询天气</button>
@@ -120,13 +119,18 @@
             查询结果将显示在这里
         </div>
     </div>
-
     <script>
         // ============ 二维码部分 ============
         const inputText = document.getElementById('inputText');
         const genBtn = document.getElementById('genBtn');
         const downloadBtn = document.getElementById('downloadBtn');
         const canvas = document.getElementById('qrcodeCanvas');
+        const ctx = canvas.getContext("2d");
+
+        // 清空画布函数
+        function clearCanvas(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
 
         genBtn.addEventListener('click', async ()=>{
             const data = inputText.value.trim();
@@ -134,6 +138,7 @@
                 alert("请输入二维码内容！");
                 return;
             }
+            clearCanvas();
             try {
                 await QRCode.toCanvas(canvas, data, {
                     width:240,
@@ -145,22 +150,24 @@
                 alert("二维码生成失败："+err.message);
             }
         })
-
         downloadBtn.addEventListener('click', ()=>{
             const link = document.createElement('a');
             link.download = "qrcode.png";
             link.href = canvas.toDataURL('image/png');
             link.click();
         })
+        // 文本框回车生成二维码
+        inputText.addEventListener("keydown", e=>{
+            if(e.key === "Enter") genBtn.click();
+        })
 
-        // ============ 天气API部分 ============
+        // ============ 天气查询部分【和风天气】 ============
         const cityInput = document.getElementById('cityInput');
         const weatherBtn = document.getElementById('weatherBtn');
         const weatherResult = document.getElementById('weatherResult');
-
-        // ========== 【重点】去 tianqiapi.com 注册账号，替换下面两个密钥 ==========
-        const appid = "38TNVX7Q3V";
-        const appsecret = "CF5AK53PQ8";
+        let isLoading = false;
+        // ========== 在这里填入你和风天气控制台的 key ==========
+        const QWEATHER_KEY = "你的和风天气key";
 
         weatherBtn.addEventListener('click', async ()=>{
             const city = cityInput.value.trim();
@@ -168,33 +175,52 @@
                 weatherResult.innerText = "请输入城市名称";
                 return;
             }
-            if(!appid || !appsecret || appid==="你的appid"){
-                weatherResult.innerText = "请先在代码里填写 appid 和 appsecret！\n去 tianqiapi.com 注册免费账号获取密钥";
-                return;
-            }
-            weatherResult.innerText = "正在查询...";
+            if(isLoading) return;
+            isLoading = true;
+            weatherBtn.disabled = true;
+            weatherResult.innerText = "正在查询城市ID...";
             try{
-                const url = `https://pddfps.tianqiapi.com/api?unescape=1&version=v63&appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}`;
-                const res = await fetch(url);
-                const json = await res.json();
-                if(json.err){
-                    weatherResult.innerText = `查询失败：${json.errmsg}`;
+                // 第一步：GeoAPI城市搜索，获取locationID
+                const geoUrl = `https://devapi.qweather.com/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${QWEATHER_KEY}`;
+                const geoRes = await fetch(geoUrl);
+                const geoJson = await geoRes.json();
+                if(geoJson.code !== "200"){
+                    weatherResult.innerText = `城市查询失败：${geoJson.code}`;
                     return;
                 }
-                const wea = json.data[0];
-                const outputText = `城市：${json.city}
-日期：${wea.date}
-天气：${wea.wea}
-温度：${wea.tem}℃
-最低/最高：${wea.tem2}℃ ~ ${wea.tem1}℃
-风向：${wea.win} ${wea.win_speed}
-空气质量：${wea.air_level}
-提示：${wea.air_tips}`;
+                const locationId = geoJson.location[0].id;
+                weatherResult.innerText = "正在获取实时天气...";
+
+                // 第二步：用locationId查询实时天气
+                const weatherUrl = `https://devapi.qweather.com/v7/weather/now?location=${locationId}&key=${QWEATHER_KEY}`;
+                const weatherRes = await fetch(weatherUrl);
+                const weatherJson = await weatherRes.json();
+                if(weatherJson.code !== "200"){
+                    weatherResult.innerText = `天气查询失败：${weatherJson.code}`;
+                    return;
+                }
+                const now = weatherJson.now;
+                const cityName = geoJson.location[0].name;
+                const outputText = `城市：${cityName}
+天气：${now.text}
+温度：${now.temp}℃
+体感温度：${now.feelsLike}℃
+风向：${now.windDir}
+风力：${now.windScale}级
+湿度：${now.humidity}%
+气压：${now.pressure}hPa`;
                 weatherResult.innerText = outputText;
             }catch(err){
                 console.error(err);
-                weatherResult.innerText = "网络请求失败，请检查appid/appsecret或者网络";
+                weatherResult.innerText = "请求失败！和风天气前端直接调用存在跨域限制，需要后端代理";
+            }finally{
+                isLoading = false;
+                weatherBtn.disabled = false;
             }
+        })
+        // 城市输入框回车查询
+        cityInput.addEventListener("keydown", e=>{
+            if(e.key === "Enter") weatherBtn.click();
         })
     </script>
 </body>
