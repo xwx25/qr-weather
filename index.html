@@ -1,12 +1,14 @@
+// ============ 天气查询【和风天气专属代理主机】 ============
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
 const weatherResult = document.getElementById('weatherResult');
 let isLoading = false;
 
+// 你的和风天气信息
 const HOST = "me4ewvc2d7.re.qweatherapi.com";
 const DEV_ID = "Q8A1B68E16";
-// 这里必须填入你Web API的KEY！！
-const KEY = "在此粘贴你的Web API凭据KEY";
+// 填入你创建的Web API凭据KEY
+const KEY = "这里粘贴你的Web API凭据KEY";
 
 weatherBtn.addEventListener('click', async ()=>{
     const city = cityInput.value.trim();
@@ -19,15 +21,10 @@ weatherBtn.addEventListener('click', async ()=>{
     weatherBtn.disabled = true;
     weatherResult.innerText = "正在查询城市ID...";
     try{
+        // 第一步：城市搜索，使用你的专属HOST
         const geoUrl = `https://${HOST}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${KEY}`;
         const geoRes = await fetch(geoUrl);
         const geoJson = await geoRes.json();
-        console.log("返回的数据：", geoJson); // 控制台打印返回内容
-
-        if(!geoJson.code){
-            weatherResult.innerText = `返回数据异常，请查看控制台`;
-            return;
-        }
         if(geoJson.code !== "200"){
             weatherResult.innerText = `城市查询失败：${geoJson.code}`;
             return;
@@ -35,10 +32,10 @@ weatherBtn.addEventListener('click', async ()=>{
         const locationId = geoJson.location[0].id;
         weatherResult.innerText = "正在获取实时天气...";
 
+        // 第二步：实时天气查询
         const weatherUrl = `https://${HOST}/v7/weather/now?location=${locationId}&key=${KEY}`;
         const weatherRes = await fetch(weatherUrl);
         const weatherJson = await weatherRes.json();
-        console.log("天气数据：", weatherJson);
         if(weatherJson.code !== "200"){
             weatherResult.innerText = `天气查询失败：${weatherJson.code}`;
             return;
@@ -51,16 +48,18 @@ weatherBtn.addEventListener('click', async ()=>{
 体感温度：${now.feelsLike}℃
 风向：${now.windDir}
 风力：${now.windScale}级
-湿度：${now.humidity}%`;
+湿度：${now.humidity}%
+气压：${now.pressure}hPa`;
         weatherResult.innerText = outputText;
     }catch(err){
         console.error(err);
-        weatherResult.innerText = "请求网络错误";
+        weatherResult.innerText = "请求失败，请检查KEY是否为Web API类型";
     }finally{
         isLoading = false;
         weatherBtn.disabled = false;
     }
 })
+// 城市输入框回车查询
 cityInput.addEventListener("keydown", e=>{
     if(e.key === "Enter") weatherBtn.click();
 })
