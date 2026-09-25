@@ -149,15 +149,13 @@ link.href = canvas.toDataURL('image/png');
 link.click();
 })
 
-// ============ 天气API部分【已替换为和风代理域名版本】 ============
+// ============ 天气API部分 ============
 const cityInput = document.getElementById('cityInput');
 const weatherBtn = document.getElementById('weatherBtn');
 const weatherResult = document.getElementById('weatherResult');
 
-// 和风天气代理域名
-const HOST = "me4ewvc2d7.re.qweatherapi.com";
-// 在这里填入你的和风Web API KEY
-const KEY = "粘贴你的和风KEY";
+const appid = "38TNVX7Q3V";
+const appsecret = "CF5AK53PQ8";
 
 weatherBtn.addEventListener('click', async ()=>{
 const city = cityInput.value.trim();
@@ -167,37 +165,26 @@ return;
 }
 weatherResult.innerText = "正在查询...";
 try{
-// 获取城市Location ID
-const geoUrl = `https://${HOST}/geo/v2/city/lookup?location=${encodeURIComponent(city)}&key=${KEY}`;
-const geoRes = await fetch(geoUrl);
-const geoData = await geoRes.json();
-if(geoData.code !== "200"){
-weatherResult.innerText = `城市查询失败：${geoData.code}`;
+const url = `https://api.tianqiapi.com/api?unescape=1&version=v63&appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}`;
+const res = await fetch(url);
+const json = await res.json();
+if(json.err){
+weatherResult.innerText = `查询失败：${json.errmsg}`;
 return;
 }
-const locationId = geoData.location[0].id;
-const cityName = geoData.location[0].name;
-
-// 获取实时天气
-const weatherUrl = `https://${HOST}/v7/weather/now?location=${locationId}&key=${KEY}`;
-const weatherRes = await fetch(weatherUrl);
-const weatherData = await weatherRes.json();
-if(weatherData.code !== "200"){
-weatherResult.innerText = `天气查询失败：${weatherData.code}`;
-return;
-}
-const now = weatherData.now;
-const outputText = `城市：${cityName}
-天气：${now.text}
-温度：${now.temp} ℃
-体感温度：${now.feelsLike} ℃
-风向：${now.windDir}
-风力：${now.windScale} 级
-湿度：${now.humidity} %`;
+const wea = json.data[0];
+const outputText = `城市：${json.city}
+日期：${wea.date}
+天气：${wea.wea}
+温度：${wea.tem}℃
+最低/最高：${wea.tem2}℃ ~ ${wea.tem1}℃
+风向：${wea.win} ${wea.win_speed}
+空气质量：${wea.air_level}
+提示：${wea.air_tips}`;
 weatherResult.innerText = outputText;
 }catch(err){
 console.error(err);
-weatherResult.innerText = "网络请求失败，请检查KEY或网络";
+weatherResult.innerText = "网络请求失败，请使用VSCode Live Server打开！";
 }
 })
 </script>
