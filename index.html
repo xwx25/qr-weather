@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码生成 + 天气查询</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            padding: 30px 20px;
+        }
+        .container {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto 30px;
+        }
+        h1 {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 24px;
+            color: #222;
+        }
+        h2 {
+            font-size:18px;
+            margin-bottom:16px;
+            color:#333;
+            border-bottom:1px solid #eee;
+            padding-bottom:8px;
+        }
+        textarea,input{
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-bottom:16px;
+        }
+        textarea{
+            height: 100px;
+            resize: none;
+        }
+        .btn-group{
+            display:flex;
+            gap:10px;
+            margin-bottom:24px;
+        }
+        button{
+            flex:1;
+            padding:12px;
+            border:none;
+            border-radius:8px;
+            font-size:15px;
+            cursor:pointer;
+        }
+        .btn-blue{
+            background:#2563eb;
+            color:white;
+        }
+        .btn-green{
+            background:#16a34a;
+            color:white;
+        }
+        .btn-orange{
+            background:#f97316;
+            color:white;
+        }
+        button:disabled{
+            background:#94a3b8;
+            cursor:not-allowed;
+        }
+        .qrcode-wrap{
+            text-align:center;
+        }
+        #qrcodeCanvas{
+            max-width:240px;
+        }
+        .weather-result{
+            padding:16px;
+            background:#f8fafc;
+            border-radius:8px;
+            min-height:100px;
+            line-height:1.8;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <!-- 二维码模块 -->
+    <div class="container">
+        <h2>二维码生成器</h2>
+        <textarea id="inputText" placeholder="请输入要生成二维码的内容..."></textarea>
+        <div class="btn-group">
+            <button id="genBtn" class="btn-blue">生成二维码</button>
+            <button id="downloadBtn" class="btn-green" disabled>下载保存</button>
+        </div>
+        <div class="qrcode-wrap">
+            <canvas id="qrcodeCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- 天气查询模块 -->
+    <div class="container">
+        <h2>天气查询</h2>
+        <input type="text" id="cityInput" placeholder="输入城市名称，例如：广州、北京">
+        <div class="btn-group">
+            <button id="weatherBtn" class="btn-orange">查询天气</button>
+        </div>
+        <div class="weather-result" id="weatherResult">
+            查询结果将显示在这里
+        </div>
+    </div>
+
+    <script>
+        // ============ 二维码部分 ============
+        const inputText = document.getElementById('inputText');
+        const genBtn = document.getElementById('genBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const canvas = document.getElementById('qrcodeCanvas');
+
+        genBtn.addEventListener('click', async ()=>{
+            const data = inputText.value.trim();
+            if(!data){
+                alert("请输入二维码内容！");
+                return;
+            }
+            try {
+                await QRCode.toCanvas(canvas, data, {
+                    width:240,
+                    margin:2
+                });
+                downloadBtn.disabled = false;
+            }catch(err){
+                console.error(err);
+                alert("二维码生成失败："+err.message);
+            }
+        })
+
+        downloadBtn.addEventListener('click', ()=>{
+            const link = document.createElement('a');
+            link.download = "qrcode.png";
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        })
+
+        // ============ 天气API部分 ============
+        const cityInput = document.getElementById('cityInput');
+        const weatherBtn = document.getElementById('weatherBtn');
+        const weatherResult = document.getElementById('weatherResult');
+
+        // ========== 【重点】去 tianqiapi.com 注册账号，替换下面两个密钥 ==========
+        const appid = "你的appid";
+        const appsecret = "你的appsecret";
+
+        weatherBtn.addEventListener('click', async ()=>{
+            const city = cityInput.value.trim();
+            if(!city){
+                weatherResult.innerText = "请输入城市名称";
+                return;
+            }
+            if(!appid || !appsecret || appid==="你的appid"){
+                weatherResult.innerText = "请先在代码里填写 appid 和 appsecret！\n去 tianqiapi.com 注册免费账号获取密钥";
+                return;
+            }
+            weatherResult.innerText = "正在查询...";
+            try{
+                const url = `https://pddfps.tianqiapi.com/api?unescape=1&version=v63&appid=${appid}&appsecret=${appsecret}&city=${encodeURIComponent(city)}`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if(json.err){
+                    weatherResult.innerText = `查询失败：${json.errmsg}`;
+                    return;
+                }
+                const wea = json.data[0];
+                const outputText = `城市：${json.city}
+日期：${wea.date}
+天气：${wea.wea}
+温度：${wea.tem}℃
+最低/最高：${wea.tem2}℃ ~ ${wea.tem1}℃
+风向：${wea.win} ${wea.win_speed}
+空气质量：${wea.air_level}
+提示：${wea.air_tips}`;
+                weatherResult.innerText = outputText;
+            }catch(err){
+                console.error(err);
+                weatherResult.innerText = "网络请求失败，请检查appid/appsecret或者网络";
+            }
+        })
+    </script>
+</body>
+</html>
